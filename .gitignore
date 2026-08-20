@@ -24,7 +24,11 @@ data/prepared/*
 # Benchmark output — raw per-operation samples are large. Aggregated results
 # (results.json / results.csv / charts) ARE committed: they are the deliverable.
 # ---------------------------------------------------------------------------
-results/raw/
+results/raw/*
+# ...except the two runs the README reports, so a reviewer can recompute any
+# percentile from the individual samples (564 KB total).
+!results/raw/lab-final/
+!results/raw/cloud-final/
 
 # ---------------------------------------------------------------------------
 # Python
@@ -48,3 +52,13 @@ htmlcov/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# ---------------------------------------------------------------------------
+# Not part of the submission: the assignment brief itself, local planning
+# notes, the leftover .git of the pre-flatten nested repo, and the loose copies
+# of the SNAP source files (byte-identical duplicates of data/raw/).
+# ---------------------------------------------------------------------------
+OVERVIEW.md
+*.pdf
+cognodb-benchmark/
+data/*.txt

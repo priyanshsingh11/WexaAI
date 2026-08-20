@@ -6,7 +6,7 @@ Every requirement from the Wexa AI take-home PDF mapped to where it is satisfied
 
 | Requirement | Status | Where |
 |---|---|---|
-| Free c0 instance created | ✅ | instance `<instance-id>`, region us-east |
+| Free c0 instance created | ✅ | free `c0` instance, region us-east (instance id withheld — it is part of the connection URI) |
 | Connection details stored outside code | ✅ | `.env` (gitignored); `.env.example` documents the variables |
 | Connected with the official Neo4j driver | ✅ | `benchmarks/adapters/bolt.py`, `neo4j==6.2.0` |
 
