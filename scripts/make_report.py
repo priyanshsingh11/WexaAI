@@ -240,7 +240,13 @@ def main() -> int:
     print(f"wrote {RESULTS/'results.csv'}")
     print(f"wrote {RESULTS/'tables.md'}")
     print()
-    print(report)
+    # The tables contain ✅/⚠️; a Windows console defaults to cp1252 and would raise on
+    # them. The files are already written as UTF-8, so only this echo needs protecting.
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except Exception:  # noqa: BLE001 - older/redirected streams
+        pass
+    print(report.encode("utf-8", "replace").decode("utf-8"))
     return 0
 
 

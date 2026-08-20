@@ -1,0 +1,42 @@
+{
+  "captured_utc": "2026-08-20T14:51:18.202493+00:00",
+  "note": "Observed from the Docker daemon, not from the databases themselves. Disk is not capped per container: --storage-opt size= needs a storage driver unavailable on Docker Desktop for Windows. The dataset is ~50 MB on disk, well under the 1 GB free-tier limit on every engine, so disk was never binding.",
+  "containers": {
+    "neo4j": {
+      "container": "bench-neo4j",
+      "image": "neo4j:5.26-community",
+      "enforced_vcpu": 0.5,
+      "enforced_memory_mb": 256.0,
+      "memory_in_use": "253.2MiB",
+      "memory_percent_of_cap": "98.90%",
+      "cpu_percent_at_sample": "1.43%"
+    },
+    "memgraph": {
+      "container": "bench-memgraph",
+      "image": "memgraph/memgraph:2.22.0",
+      "enforced_vcpu": 0.5,
+      "enforced_memory_mb": 256.0,
+      "memory_in_use": "158.5MiB",
+      "memory_percent_of_cap": "61.92%",
+      "cpu_percent_at_sample": "0.04%"
+    },
+    "falkordb": {
+      "container": "bench-falkordb",
+      "image": "falkordb/falkordb:v4.2.2",
+      "enforced_vcpu": 0.5,
+      "enforced_memory_mb": 256.0,
+      "memory_in_use": "125.5MiB",
+      "memory_percent_of_cap": "49.02%",
+      "cpu_percent_at_sample": "0.75%"
+    },
+    "arangodb": {
+      "container": "bench-arangodb",
+      "image": "arangodb:3.11.10",
+      "enforced_vcpu": 0.5,
+      "enforced_memory_mb": 256.0,
+      "memory_in_use": "172.5MiB",
+      "memory_percent_of_cap": "67.38%",
+      "cpu_percent_at_sample": "1.40%"
+    }
+  }
+}

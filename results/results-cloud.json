@@ -1,0 +1,381 @@
+{
+  "run_id": "cloud-final",
+  "manifest": {
+    "run_utc": "2026-08-20T14:11:30.823935+00:00",
+    "git_sha": "4dd3be25100fff2ab42e22489dfbedf60ed9ea5f",
+    "client_machine": {
+      "platform": "Windows-10-10.0.26200-SP0",
+      "python": "3.11.7",
+      "logical_cpus": 16,
+      "physical_cpus": 12,
+      "total_ram_gb": 16.83
+    },
+    "driver_versions": {
+      "neo4j": "6.2.0",
+      "falkordb": "1.7.1",
+      "python-arango": "8.3.3",
+      "redis": "8.1.0"
+    },
+    "settings": {
+      "iterations": 100,
+      "warmup": 20,
+      "cold_samples": 5,
+      "concurrency_levels": "1,10,40",
+      "mixed_duration_seconds": 20.0,
+      "read_ratio": 0.9
+    },
+    "dataset": {
+      "nodes": 34546,
+      "edges": 421578,
+      "edges_in_full_source": 421578,
+      "nodes_with_year": 30561,
+      "year_coverage_pct": 88.46,
+      "year_histogram": {
+        "1992": 582,
+        "1993": 1535,
+        "1994": 2304,
+        "1995": 2855,
+        "1996": 3205,
+        "1997": 3532,
+        "1998": 3723,
+        "1999": 4003,
+        "2000": 4036,
+        "2001": 4103,
+        "2002": 683
+      }
+    },
+    "dataset_hashes": {
+      "nodes.csv": {
+        "sha256": "312afbf5c40dbfcc9c895a03bac18c9e5dd23af0ff00faeb212508a5ceac7121",
+        "bytes": 807874
+      },
+      "edges.csv": {
+        "sha256": "48175de71c9cfbe9935491e9cabfa72e0e9a98f109880db3a030827c774df38e",
+        "bytes": 7166835
+      },
+      "start_nodes.json": {
+        "sha256": "b2e2c9493c69741ae835ff014390685386bca481b0fc4d36a8e6bea811e1ec06",
+        "bytes": 10904
+      },
+      "expected.json": {
+        "sha256": "44a6207619c01f157d5e9bf96003b157adacc9317610faf1f45e47022ffd8b41",
+        "bytes": 18599
+      }
+    }
+  },
+  "databases": {
+    "cognodb": {
+      "display_name": "CognoDB Cloud (free c0)",
+      "track": "cloud",
+      "tier": {
+        "advertised": "0.5 vCPU (burstable), 256 MB RAM, 1 GB disk",
+        "region": "us-east",
+        "source": "assignment PDF section 3 + CognoDB console",
+        "notes": "Only region offered on the free tier. dbms.components() and store-size procedures are not exposed, so server version and on-disk size are reported as not observable."
+      },
+      "dialect": "cypher-bolt",
+      "workloads": {
+        "one_hop": {
+          "description": "Count distinct papers cited directly by a start paper (1 hop).",
+          "category": "traversal",
+          "warm": {
+            "n": 100,
+            "min_ms": 307.046,
+            "mean_ms": 351.887,
+            "p50_ms": 322.382,
+            "p90_ms": 416.63,
+            "p95_ms": 480.251,
+            "p99_ms": 861.953,
+            "max_ms": 925.316,
+            "stdev_ms": 93.743
+          },
+          "cold": {
+            "n": 5,
+            "min_ms": 321.319,
+            "mean_ms": 362.153,
+            "p50_ms": 325.235,
+            "p90_ms": 514.207,
+            "p95_ms": 514.207,
+            "p99_ms": 514.207,
+            "max_ms": 514.207,
+            "stdev_ms": 85.028
+          },
+          "correctness": "ok",
+          "mismatches": [],
+          "failures": 0,
+          "error": null
+        },
+        "two_hop": {
+          "description": "Count distinct papers reachable within 2 citation hops.",
+          "category": "traversal",
+          "warm": {
+            "n": 100,
+            "min_ms": 298.082,
+            "mean_ms": 330.438,
+            "p50_ms": 323.446,
+            "p90_ms": 348.667,
+            "p95_ms": 361.481,
+            "p99_ms": 497.574,
+            "max_ms": 512.481,
+            "stdev_ms": 33.787
+          },
+          "cold": {
+            "n": 5,
+            "min_ms": 323.584,
+            "mean_ms": 659.472,
+            "p50_ms": 574.693,
+            "p90_ms": 1259.834,
+            "p95_ms": 1259.834,
+            "p99_ms": 1259.834,
+            "max_ms": 1259.834,
+            "stdev_ms": 389.941
+          },
+          "correctness": "ok",
+          "mismatches": [],
+          "failures": 0,
+          "error": null
+        },
+        "three_hop": {
+          "description": "Count distinct papers reachable within 3 citation hops.",
+          "category": "traversal",
+          "warm": {
+            "n": 100,
+            "min_ms": 299.163,
+            "mean_ms": 452.333,
+            "p50_ms": 363.744,
+            "p90_ms": 707.878,
+            "p95_ms": 803.099,
+            "p99_ms": 1304.138,
+            "max_ms": 1332.557,
+            "stdev_ms": 193.88
+          },
+          "cold": {
+            "n": 5,
+            "min_ms": 327.055,
+            "mean_ms": 382.272,
+            "p50_ms": 347.053,
+            "p90_ms": 542.681,
+            "p95_ms": 542.681,
+            "p99_ms": 542.681,
+            "max_ms": 542.681,
+            "stdev_ms": 91.041
+          },
+          "correctness": "ok",
+          "mismatches": [],
+          "failures": 0,
+          "error": null
+        },
+        "point_lookup": {
+          "description": "Fetch one paper by its indexed id and return its publication year.",
+          "category": "lookup",
+          "warm": {
+            "n": 100,
+            "min_ms": 303.385,
+            "mean_ms": 319.292,
+            "p50_ms": 319.359,
+            "p90_ms": 327.821,
+            "p95_ms": 330.812,
+            "p99_ms": 371.291,
+            "max_ms": 415.193,
+            "stdev_ms": 13.326
+          },
+          "cold": {
+            "n": 5,
+            "min_ms": 307.852,
+            "mean_ms": 317.172,
+            "p50_ms": 317.336,
+            "p90_ms": 327.345,
+            "p95_ms": 327.345,
+            "p99_ms": 327.345,
+            "max_ms": 327.345,
+            "stdev_ms": 6.949
+          },
+          "correctness": "ok",
+          "mismatches": [],
+          "failures": 0,
+          "error": null
+        },
+        "filtered_lookup": {
+          "description": "Count papers published in a given year, using the index on `year`.",
+          "category": "lookup",
+          "warm": {
+            "n": 100,
+            "min_ms": 297.58,
+            "mean_ms": 324.877,
+            "p50_ms": 324.228,
+            "p90_ms": 335.524,
+            "p95_ms": 339.11,
+            "p99_ms": 348.205,
+            "max_ms": 352.041,
+            "stdev_ms": 9.056
+          },
+          "cold": {
+            "n": 5,
+            "min_ms": 313.702,
+            "mean_ms": 321.591,
+            "p50_ms": 320.409,
+            "p90_ms": 332.478,
+            "p95_ms": 332.478,
+            "p99_ms": 332.478,
+            "max_ms": 332.478,
+            "stdev_ms": 6.789
+          },
+          "correctness": "ok",
+          "mismatches": [],
+          "failures": 0,
+          "error": null
+        },
+        "aggregation": {
+          "description": "Group all papers by year and count them; returns the number of year buckets.",
+          "category": "aggregation",
+          "warm": {
+            "n": 100,
+            "min_ms": 354.669,
+            "mean_ms": 400.021,
+            "p50_ms": 400.314,
+            "p90_ms": 423.263,
+            "p95_ms": 438.144,
+            "p99_ms": 473.691,
+            "max_ms": 477.334,
+            "stdev_ms": 23.277
+          },
+          "cold": {
+            "n": 5,
+            "min_ms": 380.834,
+            "mean_ms": 403.134,
+            "p50_ms": 397.951,
+            "p90_ms": 448.021,
+            "p95_ms": 448.021,
+            "p99_ms": 448.021,
+            "max_ms": 448.021,
+            "stdev_ms": 26.886
+          },
+          "correctness": "ok",
+          "mismatches": [],
+          "failures": 0,
+          "error": null
+        }
+      },
+      "mixed": [
+        {
+          "clients": 1,
+          "duration_seconds": 20.13,
+          "read_ratio": 0.9,
+          "operations": 62,
+          "reads": 56,
+          "writes": 6,
+          "errors": 0,
+          "throughput_qps": 3.08,
+          "read_latency": {
+            "n": 56,
+            "min_ms": 303.631,
+            "mean_ms": 324.004,
+            "p50_ms": 318.904,
+            "p90_ms": 343.387,
+            "p95_ms": 348.651,
+            "p99_ms": 470.035,
+            "max_ms": 470.035,
+            "stdev_ms": 26.713
+          },
+          "write_latency": {
+            "n": 6,
+            "min_ms": 321.681,
+            "mean_ms": 330.898,
+            "p50_ms": 329.326,
+            "p90_ms": 340.468,
+            "p95_ms": 340.468,
+            "p99_ms": 340.468,
+            "max_ms": 340.468,
+            "stdev_ms": 7.065
+          },
+          "writes_cleaned_up": 6
+        },
+        {
+          "clients": 10,
+          "duration_seconds": 20.24,
+          "read_ratio": 0.9,
+          "operations": 570,
+          "reads": 519,
+          "writes": 51,
+          "errors": 0,
+          "throughput_qps": 28.16,
+          "read_latency": {
+            "n": 519,
+            "min_ms": 294.724,
+            "mean_ms": 355.041,
+            "p50_ms": 315.771,
+            "p90_ms": 387.133,
+            "p95_ms": 473.72,
+            "p99_ms": 1890.933,
+            "max_ms": 1940.836,
+            "stdev_ms": 208.855
+          },
+          "write_latency": {
+            "n": 51,
+            "min_ms": 308.354,
+            "mean_ms": 332.39,
+            "p50_ms": 328.601,
+            "p90_ms": 349.061,
+            "p95_ms": 371.185,
+            "p99_ms": 397.646,
+            "max_ms": 397.646,
+            "stdev_ms": 16.808
+          },
+          "writes_cleaned_up": 51
+        },
+        {
+          "clients": 40,
+          "duration_seconds": 20.33,
+          "read_ratio": 0.9,
+          "operations": 2397,
+          "reads": 2177,
+          "writes": 220,
+          "errors": 0,
+          "throughput_qps": 117.88,
+          "read_latency": {
+            "n": 2177,
+            "min_ms": 285.706,
+            "mean_ms": 335.51,
+            "p50_ms": 316.088,
+            "p90_ms": 334.756,
+            "p95_ms": 344.937,
+            "p99_ms": 1559.717,
+            "max_ms": 1634.8,
+            "stdev_ms": 148.827
+          },
+          "write_latency": {
+            "n": 220,
+            "min_ms": 299.594,
+            "mean_ms": 345.378,
+            "p50_ms": 335.416,
+            "p90_ms": 395.394,
+            "p95_ms": 415.753,
+            "p99_ms": 458.619,
+            "max_ms": 513.609,
+            "stdev_ms": 34.111
+          },
+          "writes_cleaned_up": 220
+        }
+      ],
+      "network_baseline_tcp_ms": {
+        "n": 20,
+        "min_ms": 294.166,
+        "mean_ms": 520.532,
+        "p50_ms": 471.889,
+        "p90_ms": 632.845,
+        "p95_ms": 759.579,
+        "p99_ms": 1482.319,
+        "max_ms": 1482.319,
+        "stdev_ms": 248.875,
+        "failures": 0,
+        "resolved_ip": "136.70.132.96"
+      },
+      "footprint": {
+        "node_count": 34546,
+        "relationship_count": 421578,
+        "server_version": "not observable (procedure not available on this platform)",
+        "store_size_bytes": "not observable (procedure not available on this platform)"
+      }
+    }
+  }
+}

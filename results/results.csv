@@ -1,0 +1,31 @@
+database,display_name,track,dialect,workload,category,correctness,failures,n,warm_min_ms,warm_p50_ms,warm_p90_ms,warm_p95_ms,warm_p99_ms,warm_max_ms,warm_mean_ms,warm_stdev_ms,cold_p50_ms,cold_max_ms
+neo4j,"Neo4j Community 5 (Docker, capped)",lab,cypher-bolt,one_hop,traversal,ok,0,100,3.149,5.175,38.629,65.087,78.909,82.561,13.069,18.837,13.319,389.748
+neo4j,"Neo4j Community 5 (Docker, capped)",lab,cypher-bolt,two_hop,traversal,ok,0,100,3.112,4.696,28.673,63.552,78.753,80.056,11.075,18.151,4.136,73.821
+neo4j,"Neo4j Community 5 (Docker, capped)",lab,cypher-bolt,three_hop,traversal,ok,0,100,3.362,4.948,75.829,81.971,84.103,88.773,17.888,27.87,5.699,45.803
+neo4j,"Neo4j Community 5 (Docker, capped)",lab,cypher-bolt,point_lookup,lookup,ok,0,100,2.989,4.028,56.791,67.239,72.937,77.984,11.022,19.512,5.17,80.05
+neo4j,"Neo4j Community 5 (Docker, capped)",lab,cypher-bolt,filtered_lookup,lookup,ok,0,100,4.989,12.125,64.401,69.393,80.581,85.523,22.992,23.003,8.709,84.611
+neo4j,"Neo4j Community 5 (Docker, capped)",lab,cypher-bolt,aggregation,aggregation,ok,0,100,6.209,8.851,76.607,82.872,104.939,689.949,32.013,72.176,67.738,283.649
+memgraph,"Memgraph (Docker, capped)",lab,cypher-bolt,one_hop,traversal,ok,0,100,0.871,1.38,2.152,2.324,2.533,3.054,1.495,0.426,4.506,12.353
+memgraph,"Memgraph (Docker, capped)",lab,cypher-bolt,two_hop,traversal,ok,0,100,0.912,1.468,2.603,2.933,3.428,10.341,1.751,1.054,1.45,2.321
+memgraph,"Memgraph (Docker, capped)",lab,cypher-bolt,three_hop,traversal,ok,0,100,0.843,2.391,5.704,10.295,33.238,34.879,4.043,6.03,1.598,4.626
+memgraph,"Memgraph (Docker, capped)",lab,cypher-bolt,point_lookup,lookup,ok,0,100,0.706,1.072,1.507,1.719,2.052,3.263,1.173,0.345,1.655,2.221
+memgraph,"Memgraph (Docker, capped)",lab,cypher-bolt,filtered_lookup,lookup,ok,0,100,0.954,1.388,1.849,1.956,2.474,13.1,1.546,1.204,3.209,5.787
+memgraph,"Memgraph (Docker, capped)",lab,cypher-bolt,aggregation,aggregation,ok,0,100,7.589,9.164,41.096,44.555,48.147,48.99,13.809,11.985,8.392,8.755
+falkordb,"FalkorDB (Docker, capped)",lab,cypher-resp,one_hop,traversal,ok,0,100,3.697,4.392,5.445,38.879,42.55,46.841,7.012,9.557,7.806,30.262
+falkordb,"FalkorDB (Docker, capped)",lab,cypher-resp,two_hop,traversal,ok,0,100,3.738,4.667,7.569,42.375,46.87,49.981,8.063,10.548,6.098,8.818
+falkordb,"FalkorDB (Docker, capped)",lab,cypher-resp,three_hop,traversal,ok,0,100,3.643,12.948,96.107,168.735,438.167,568.88,45.789,80.626,5.228,25.762
+falkordb,"FalkorDB (Docker, capped)",lab,cypher-resp,point_lookup,lookup,ok,0,100,3.548,4.174,5.834,32.761,41.671,41.785,6.372,8.115,4.31,4.497
+falkordb,"FalkorDB (Docker, capped)",lab,cypher-resp,filtered_lookup,lookup,ok,0,100,3.568,4.553,6.366,38.187,42.464,42.651,7.192,8.997,4.141,4.761
+falkordb,"FalkorDB (Docker, capped)",lab,cypher-resp,aggregation,aggregation,ok,0,100,7.444,9.412,54.115,60.792,66.884,96.821,19.068,19.445,7.854,42.062
+arangodb,"ArangoDB (Docker, capped)",lab,aql-http,one_hop,traversal,ok,0,100,5.105,16.695,30.739,31.078,32.767,33.508,18.066,9.591,23.295,30.853
+arangodb,"ArangoDB (Docker, capped)",lab,aql-http,two_hop,traversal,ok,0,100,4.896,21.143,33.492,35.832,39.814,40.984,20.726,10.466,18.291,27.973
+arangodb,"ArangoDB (Docker, capped)",lab,aql-http,three_hop,traversal,ok,0,100,4.622,28.772,54.702,73.813,95.013,128.028,32.089,20.929,17.029,23.181
+arangodb,"ArangoDB (Docker, capped)",lab,aql-http,point_lookup,lookup,ok,0,100,3.823,15.39,24.958,27.945,30.487,31.33,15.38,6.814,15.208,28.893
+arangodb,"ArangoDB (Docker, capped)",lab,aql-http,filtered_lookup,lookup,ok,0,100,4.507,15.576,25.893,29.186,30.141,31.465,15.684,7.497,25.713,30.568
+arangodb,"ArangoDB (Docker, capped)",lab,aql-http,aggregation,aggregation,ok,0,100,17.401,30.367,48.927,60.501,82.657,83.1,32.537,13.99,29.472,42.738
+cognodb,CognoDB Cloud (free c0),cloud,cypher-bolt,one_hop,traversal,ok,0,100,307.046,322.382,416.63,480.251,861.953,925.316,351.887,93.743,325.235,514.207
+cognodb,CognoDB Cloud (free c0),cloud,cypher-bolt,two_hop,traversal,ok,0,100,298.082,323.446,348.667,361.481,497.574,512.481,330.438,33.787,574.693,1259.834
+cognodb,CognoDB Cloud (free c0),cloud,cypher-bolt,three_hop,traversal,ok,0,100,299.163,363.744,707.878,803.099,1304.138,1332.557,452.333,193.88,347.053,542.681
+cognodb,CognoDB Cloud (free c0),cloud,cypher-bolt,point_lookup,lookup,ok,0,100,303.385,319.359,327.821,330.812,371.291,415.193,319.292,13.326,317.336,327.345
+cognodb,CognoDB Cloud (free c0),cloud,cypher-bolt,filtered_lookup,lookup,ok,0,100,297.58,324.228,335.524,339.11,348.205,352.041,324.877,9.056,320.409,332.478
+cognodb,CognoDB Cloud (free c0),cloud,cypher-bolt,aggregation,aggregation,ok,0,100,354.669,400.314,423.263,438.144,473.691,477.334,400.021,23.277,397.951,448.021
