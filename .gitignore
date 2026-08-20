@@ -17,7 +17,7 @@
 # verify they built the identical dataset.
 # ---------------------------------------------------------------------------
 data/raw/
-data/prepared/
+data/prepared/*
 !data/prepared/manifest.json
 
 # ---------------------------------------------------------------------------
