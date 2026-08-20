@@ -22,7 +22,8 @@ data/prepared/*
 
 # ---------------------------------------------------------------------------
 # Benchmark output — raw per-operation samples are large. Aggregated results
-# (results.json / results.csv / charts) ARE committed: they are the deliverable.
+# (results-lab.json / results-cloud.json / results.csv / charts) ARE committed:
+# they are the deliverable.
 # ---------------------------------------------------------------------------
 results/raw/*
 # ...except the two runs the README reports, so a reviewer can recompute any

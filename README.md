@@ -1,52 +1,83 @@
 # Benchmarking CognoDB Cloud against four graph databases
 
-A reproducible latency and throughput comparison of **CognoDB Cloud** with **Neo4j
-Community**, **Memgraph**, **FalkorDB** and **ArangoDB**, on the same dataset and the same
-logical workloads.
+A reproducible latency, throughput and correctness comparison of **CognoDB Cloud** with
+**Neo4j Community**, **Memgraph**, **FalkorDB** and **ArangoDB**, on the same dataset, the
+same logical workloads and the same resource envelope.
+
+*Wexa AI take-home — Graph Database Cloud Benchmarking.*
 
 The headline result is not which database is fastest. It is that **the first version of
 this benchmark was measuring the wrong things**, in four separate ways, and each one would
 have produced a confident, plausible, wrong chart:
 
-- **two engines silently returned incorrect results** — CognoDB on cyclic paths, FalkorDB
+- **Two engines silently returned incorrect results** — CognoDB on cyclic paths, FalkorDB
   understating traversals by up to 37%. FalkorDB's error made it look *faster*, because
   returning fewer results is less work.
-- **one engine was being overcharged ~10×** by a transport artifact that had nothing to do
+- **One engine was being overcharged ~10×** by a transport artifact that had nothing to do
   with the database.
-- **the dataset itself lost every paper from 2000–2002** to a silent join failure,
+- **The dataset itself lost every paper from 2000–2002** to a silent join failure,
   corrupting two workloads on all five platforms equally.
 
 None of these raised an error. All were caught by checking results against independently
-computed ground truth. They are documented in
-[Correctness findings](#correctness-findings), because a latency number attached to a wrong
-answer is worse than no number at all.
+computed ground truth. They are documented in [Correctness findings](#correctness-findings),
+because a latency number attached to a wrong answer is worse than no number at all.
 
 ---
 
 ## Contents
 
+- [Assignment requirement coverage](#assignment-requirement-coverage)
 - [What was measured](#what-was-measured)
+- [Environment and instance specs](#environment-and-instance-specs)
 - [Why two tracks](#why-two-tracks)
 - [Databases selected, and why](#databases-selected-and-why)
 - [Dataset](#dataset)
 - [Methodology](#methodology)
+- [The exact logical queries](#the-exact-logical-queries)
 - [Correctness findings](#correctness-findings)
 - [Results](#results)
 - [Analysis](#analysis)
 - [Fairness limitations and caveats](#fairness-limitations-and-caveats)
 - [Reproducing this benchmark](#reproducing-this-benchmark)
 - [Repository layout](#repository-layout)
+- [Extending the harness](#extending-the-harness)
+
+---
+
+## Assignment requirement coverage
+
+Every requirement in the brief, mapped to where it is satisfied. A line-by-line audit,
+including the gaps, is in [COMPLIANCE.md](COMPLIANCE.md).
+
+| § | Requirement | Where |
+|---|---|---|
+| 3 | CognoDB free `c0` instance, official Neo4j driver, credentials from env | [benchmarks/adapters/bolt.py](benchmarks/adapters/bolt.py), [.env.example](.env.example) |
+| 4 | CognoDB + **four** other graph databases, equal resources, specs documented | [Databases selected](#databases-selected-and-why), [Environment and instance specs](#environment-and-instance-specs) |
+| 5.1 | Public dataset ≥ 100k relationships, identical everywhere, load method stated | [Dataset](#dataset) — SNAP cit-HepPh, **421,578** relationships |
+| 5.2 | Ingest, 1/2/3-hop, point + filtered lookup, aggregation, mixed workload, footprint | [Results](#results) — every metric, every platform |
+| 5.2 | ≥ 100 iterations after warm-up, percentiles not averages | 100 measured iterations; p50/p90/p95/p99 in [results/results.csv](results/results.csv) |
+| 5.3 | Same resources, same dataset, same logical queries, same client | [Methodology](#methodology) — verified at the Docker daemon level |
+| 5.3 | Warm up; report cold start separately | 20 untimed warm-up; [cold-start table](#cold-start-first-five-operations-after-connecting) |
+| 5.3 | Automate everything | Four scripts: prepare → load → run → report |
+| 5.3 | Record every caveat honestly | [Caveats](#fairness-limitations-and-caveats) (10) + [Correctness findings](#correctness-findings) (4) |
+| 6 | Code, reproducible instructions, results matrix, charts, analysis | This README + [scripts/](scripts/) + [results/](results/) |
+| 7 | Concurrency sweep, warm vs cold, root-cause reasoning, extensible harness | 1/10/40 clients; [Analysis](#analysis); [Extending](#extending-the-harness) |
+| 9 | No passwords or connection URIs in the repository | All credentials via `.env`; see [Security](#security) |
+
+Two things the brief asks for that this submission does **not** yet have: repeat-run
+variance across multiple runs, and a public write-up. Both are stated as gaps in
+[COMPLIANCE.md](COMPLIANCE.md) rather than glossed over.
 
 ---
 
 ## What was measured
 
-Every metric required by the assignment, on every platform:
+Every metric required by section 5.2, on every platform:
 
 | Category | Metric | Reported as |
 |---|---|---|
 | Data loading | Ingest throughput | nodes/sec, relationships/sec, total wall-clock |
-| Traversals | 1-hop, 2-hop, 3-hop latency | p50 and p95 (ms), 200 fixed start nodes |
+| Traversals | 1-hop, 2-hop, 3-hop | p50 and p95 (ms) from 200 fixed random start nodes |
 | Lookups | Point lookup, indexed/filtered lookup | p50 and p95 (ms), index stated per platform |
 | Aggregation | Group-by over a label | p50 and p95 (ms) |
 | Mixed workload | Concurrent read/write | sustained QPS at 1 / 10 / 40 clients, 90/10 read/write |
@@ -54,8 +85,57 @@ Every metric required by the assignment, on every platform:
 
 Percentiles use the **nearest-rank** method (`ceil(p/100 × n)` on sorted samples), so every
 reported value is one that an actual request experienced rather than an interpolation.
-Every individual latency sample is written to `results/raw/`, so any reviewer preferring a
-different percentile definition can recompute from the same data.
+Every individual latency sample is committed under
+[results/raw/](results/raw/), so any reviewer preferring a different percentile definition
+can recompute from the same data.
+
+---
+
+## Environment and instance specs
+
+### Client machine — identical for every measurement
+
+| Property | Value |
+|---|---|
+| OS | Windows 11 (10.0.26200) |
+| CPU | 12 physical / 16 logical cores |
+| RAM | 16.83 GB |
+| Python | 3.11.7 |
+| Location | India |
+| Drivers | `neo4j` 6.2.0, `falkordb` 1.7.1, `python-arango` 8.3.3, `redis` 8.1.0 |
+
+Recorded automatically into the `manifest` block of
+[results/results-lab.json](results/results-lab.json) and
+[results/results-cloud.json](results/results-cloud.json) at run time, along with the git
+SHA and the sha256 of every dataset file.
+
+### Tier parity — advertised specs per platform
+
+CognoDB's free tier sets the envelope; every other database is capped to match it.
+
+| Platform | Tier | vCPU | RAM | Disk | Region | Enforcement |
+|---|---|---|---|---|---|---|
+| CognoDB Cloud | free `c0` | 0.5 (burstable) | 256 MB | 1 GB | us-east | vendor-managed, as advertised |
+| Neo4j Community 5.26 | self-hosted | 0.5 | 256 MB | 1 GB¹ | local | Docker `cpus: 0.5`, `mem_limit: 256m` |
+| Memgraph 2.22 | self-hosted | 0.5 | 256 MB | 1 GB¹ | local | Docker + `--memory-limit=200` |
+| FalkorDB 4.2.2 | self-hosted | 0.5 | 256 MB | 1 GB¹ | local | Docker `cpus: 0.5`, `mem_limit: 256m` |
+| ArangoDB 3.11.10 | self-hosted | 0.5 | 256 MB | 1 GB¹ | local | Docker `cpus: 0.5`, `mem_limit: 256m` |
+
+¹ Disk is **not** capped per container — `--storage-opt size=` requires a storage driver
+unavailable on Docker Desktop for Windows. The prepared dataset is ~50 MB on disk, far
+below 1 GB everywhere, so disk was never the binding constraint. Recorded rather than
+silently ignored.
+
+Caps are verified at the daemon level, not merely declared in a compose file:
+
+```
+$ docker inspect bench-neo4j --format '{{.HostConfig.NanoCpus}} {{.HostConfig.Memory}}'
+500000000 268435456          # 0.5 vCPU, 256 MiB
+```
+
+Neo4j additionally needs its JVM sized to fit: heap 96 MB, page cache 64 MB (see
+[docker-compose.yml](docker-compose.yml)). Those values were chosen up front to make it
+start at all, not tuned against alternatives.
 
 ---
 
@@ -69,14 +149,8 @@ internally fair. **Latency is never compared across tracks.**
 ### Lab track — controlled engine comparison
 
 Neo4j, Memgraph, FalkorDB and ArangoDB run in Docker, hard-capped to CognoDB's advertised
-free-tier spec: **0.5 vCPU, 256 MB RAM**. Verified at the daemon level, not just declared:
-
-```
-$ docker inspect bench-neo4j --format '{{.HostConfig.NanoCpus}} {{.HostConfig.Memory}}'
-500000000 268435456          # 0.5 vCPU, 256 MiB
-```
-
-All four are reached over loopback, so latency is close to pure engine time.
+free-tier spec of 0.5 vCPU / 256 MB. All four are reached over loopback, so latency is
+close to pure engine time.
 
 ### Cloud track — managed endpoint, as delivered
 
@@ -88,8 +162,8 @@ query, no database — is:
 
 | Path | TCP p50 | TCP p95 |
 |---|---|---|
-| CognoDB endpoint (us-east) | ~390 ms | ~1420 ms |
-| Local Docker container | ~0.4 ms | ~16 ms |
+| CognoDB endpoint (us-east) | 471.89 ms | 759.58 ms |
+| Local Docker containers | 0.44 – 0.55 ms | 13.5 – 15.5 ms |
 
 That is roughly a **1000× transport difference before any database does any work**. A
 1-hop traversal over 34k nodes is single-digit milliseconds of engine time, so a combined
@@ -99,12 +173,13 @@ chart would report the client's internet connection, not the databases. Publishi
 The honest consequence, stated plainly: **this benchmark cannot isolate CognoDB's engine
 performance.** What it can do is measure CognoDB's end-to-end behaviour as a user in India
 actually experiences it, verify its correctness rigorously, and compare its ingest
-throughput and query semantics against the others.
+throughput, concurrency scaling and query semantics against the others.
 
 To make the cloud track a real comparison rather than a single data point, provisioning
 **Neo4j AuraDB Free in us-east** gives CognoDB a managed peer over the identical WAN link
-from the identical client. See `.env.example` — the harness picks it up automatically when
-`NEO4J_AURA_URI` is set, and skips it silently otherwise.
+from the identical client. See [.env.example](.env.example) — the harness picks it up
+automatically when `NEO4J_AURA_URI` is set, and skips it silently otherwise. It was not
+provisioned for this run, which is the single highest-value addition to the benchmark.
 
 ---
 
@@ -140,14 +215,19 @@ Source: <https://snap.stanford.edu/data/cit-HepPh.html>
 |---|---|
 | Nodes (papers) | **34,546** |
 | Relationships (`:CITES`) | **421,578** |
-| Nodes with a `year` property | 30,561 (**88.5%**) |
+| Nodes with a `year` property | 30,561 (**88.46%**) |
 | Year range | 1992 – 2002 |
+| On-disk size (prepared CSV) | ~8 MB |
 | Loaded in full on every platform | yes — no sampling was needed |
 
-421,578 relationships sits inside the assignment's suggested 100k–500k range, and **the
-full graph fit every platform including CognoDB's 1 GB free tier**, so no down-sampling was
+421,578 relationships sits inside the assignment's suggested 100k–500k range, and the full
+graph fit every platform including CognoDB's 1 GB free tier, so no down-sampling was
 applied. `scripts/prepare_dataset.py --edges N` supports a deterministic seeded subset if a
 tighter tier ever requires one.
+
+The prepared `nodes.csv` / `edges.csv` are sha256-hashed into
+[data/prepared/manifest.json](data/prepared/manifest.json), which **is** committed, so a
+reviewer can prove they built a byte-identical dataset before comparing numbers.
 
 ### The dataset defect that had to be fixed first
 
@@ -167,11 +247,11 @@ def normalise_id(paper_id: str) -> str:
     return paper_id.zfill(7)         # restore stripped leading zeros
 ```
 
-Coverage rises to **88.5%** and the range extends to its true **1992–2002**. This matters
-because `year` drives both the filtered-lookup and aggregation workloads. `tests/` asserts
-the coverage so the fix cannot silently regress.
+Coverage rises to **88.46%** and the range extends to its true **1992–2002**. This matters
+because `year` drives both the filtered-lookup and aggregation workloads.
+[tests/](tests/) asserts the coverage so the fix cannot silently regress.
 
-The remaining 11.5% of nodes are papers cited from outside the hep-ph category. They
+The remaining 11.54% of nodes are papers cited from outside the hep-ph category. They
 **keep their edges** — the traversal topology depends on them — but carry a null year.
 
 ---
@@ -181,8 +261,9 @@ The remaining 11.5% of nodes are papers cited from outside the hep-ph category. 
 ### The single most important fairness control
 
 **Every database is queried from the identical list of 200 start nodes, in the identical
-order.** The list is generated once by `prepare_dataset.py` with a fixed seed, written to
-`data/prepared/start_nodes.json`, and reused byte-for-byte by every engine and every run.
+order.** The list is generated once by `prepare_dataset.py` with a fixed seed
+(`BENCH_SEED=42`), written to `data/prepared/start_nodes.json`, and reused byte-for-byte by
+every engine and every run.
 
 If each database drew its own random start nodes it would face a different fan-out, and the
 resulting p95 values would describe the graph rather than the engine. Measured fan-out of
@@ -206,6 +287,12 @@ Per database, per workload, in this order:
 
 Failures are recorded, never dropped. A database erroring on 30% of queries would otherwise
 show a flatteringly clean p95.
+
+### Correctness checking
+
+Every read workload is checked against **ground truth precomputed from the source data** by
+`prepare_dataset.py` — not merely cross-checked between engines, since five databases
+agreeing on a wrong answer would pass that test. This is what caught findings 1 and 2 below.
 
 ### Concurrency
 
@@ -240,11 +327,47 @@ Stated per platform, since the assignment asks:
 
 ---
 
-## Correctness findings
+## The exact logical queries
 
-Every read workload is checked against **ground truth precomputed from the source data** by
-`prepare_dataset.py`, not merely cross-checked between engines — five databases agreeing on
-a wrong answer would otherwise pass. This caught three real defects.
+Defined once in [benchmarks/workloads.py](benchmarks/workloads.py) and implemented per
+dialect in [benchmarks/adapters/](benchmarks/adapters/). Same logical question everywhere;
+the syntax differs only where the engine forces it.
+
+**Bolt/Cypher — CognoDB, Neo4j, Memgraph:**
+
+```cypher
+-- traversals, k = 1, 2, 3
+MATCH (n:Paper {id: $id})-[:CITES*1..k]->(m) WHERE m <> n RETURN count(DISTINCT m) AS c
+-- point lookup
+MATCH (n:Paper {id: $id}) RETURN n.year AS year
+-- indexed/filtered lookup
+MATCH (n:Paper) WHERE n.year = $year RETURN count(n) AS c
+-- aggregation
+MATCH (n:Paper) WHERE n.year IS NOT NULL RETURN n.year AS year, count(*) AS c ORDER BY year
+-- write (mixed workload only, isolated namespace)
+CREATE (w:BenchWrite {key: $key}) RETURN 1 AS c
+```
+
+**ArangoDB — AQL:**
+
+```aql
+LET reached = (FOR v IN 1..@depth OUTBOUND @start cites
+                 OPTIONS {uniqueVertices: 'global', bfs: true}
+                 FILTER v._key != @key
+                 RETURN v._key)
+RETURN LENGTH(reached)
+```
+
+**FalkorDB** runs the same Cypher for lookups and aggregation, but its traversals are
+rewritten as an explicit union of depths because its ranged `*1..k` form returns wrong
+answers — see [finding 2](#2-falkordbs-ranged-variable-length-traversal-is-lossy).
+
+The `WHERE m <> n` clause is not incidental: it is the resolution to
+[finding 1](#1-cognodb-drops-variable-length-paths-that-return-to-the-origin).
+
+---
+
+## Correctness findings
 
 ### 1. CognoDB drops variable-length paths that return to the origin
 
@@ -304,14 +427,14 @@ A *fresh* connection being 9× faster than a pooled one is backwards for any rea
 cost, which is what identified it as transport. The adapter now forces a new connection per
 request.
 
-**Trade-off, stated honestly:** ArangoDB now pays a TCP handshake on every query (~0.4 ms
+**Trade-off, stated honestly:** ArangoDB now pays a TCP handshake on every query (~0.5 ms
 on loopback) that the Bolt targets amortise over a persistent connection. ArangoDB's
 reported latency is therefore slightly *pessimistic* rather than flattering.
 
 ### 4. A driver-usage trap that would have doubled CognoDB's latency
 
 `driver.execute_query()` opens a fresh session per call, costing an extra network round
-trip. Over a 390 ms WAN link that is not a rounding error:
+trip. Over a ~390 ms WAN link that is not a rounding error:
 
 | Driver usage | CognoDB p50 |
 |---|---|
@@ -325,12 +448,15 @@ benchmarking a remote Bolt endpoint.
 
 ## Results
 
-All tables below are generated by `scripts/make_report.py` from `results/results-lab.json`
-and `results/results-cloud.json`. Machine-readable copies: `results/results.csv`,
-`results/tables.md`. Every individual sample is in `results/raw/`.
+All tables below are generated by `scripts/make_report.py` from
+[results/results-lab.json](results/results-lab.json) and
+[results/results-cloud.json](results/results-cloud.json). Machine-readable copies:
+[results/results.csv](results/results.csv), [results/tables.md](results/tables.md). Every
+individual sample is in [results/raw/](results/raw/).
 
 **Run configuration:** 100 measured iterations after 20 warm-up, 5 cold samples captured
 separately, 200 fixed start nodes, mixed workload 90/10 read/write for 20 s per level.
+Run ids `lab-final` and `cloud-final`, 2026-08-20.
 
 ### Correctness against ground truth
 
@@ -344,30 +470,36 @@ Checked first, because the latency tables mean nothing without it.
 | ArangoDB | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | CognoDB Cloud | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 
-All 30 checks pass, with **zero failed operations**, after the three fixes described in
+All 30 checks pass, with **zero failed operations**, after the fixes described in
 [Correctness findings](#correctness-findings). All five databases hold the complete
 34,546-node / 421,578-relationship graph.
 
 ### Data loading (identical method everywhere)
 
-| Database | Track | Nodes/sec | Relationships/sec | Total (s) |
-|---|---|---|---|---|
-| CognoDB Cloud (free c0) | cloud | 1,322 | 1,484 | 310.3 |
-| Neo4j Community 5 | lab | 2,176 | 4,819 | 103.4 |
-| Memgraph | lab | 16,701 | 15,714 | 28.9 |
-| FalkorDB | lab | 16,756 | 7,394 | 59.1 |
-| ArangoDB | lab | 18,509 | 15,706 | 28.7 |
+| Database | Track | Nodes/sec | Relationships/sec | Nodes (s) | Rels (s) | Total (s) |
+|---|---|---|---|---|---|---|
+| CognoDB Cloud (free c0) | cloud | 1,322 | 1,484 | 26.1 | 284.2 | 310.3 |
+| Neo4j Community 5 | lab | 2,176 | 4,819 | 15.9 | 87.5 | 103.4 |
+| Memgraph | lab | 16,701 | 15,714 | 2.1 | 26.8 | 28.9 |
+| FalkorDB | lab | 16,756 | 7,394 | 2.1 | 57.0 | 59.1 |
+| ArangoDB | lab | 18,509 | 15,706 | 1.9 | 26.8 | 28.7 |
+
+Batch size 1000 on every platform. Method: driver-batched `UNWIND` (AQL `INSERT` for
+ArangoDB).
 
 ### Network baseline — transport measured separately from engine time
 
 | Database | Track | TCP p50 (ms) | TCP p95 (ms) |
 |---|---|---|---|
-| Neo4j / Memgraph / FalkorDB / ArangoDB | lab | 0.44 – 0.55 | 13.5 – 15.5 |
+| Neo4j Community 5 | lab | 0.48 | 13.46 |
+| Memgraph | lab | 0.44 | 15.50 |
+| FalkorDB | lab | 0.55 | 13.54 |
+| ArangoDB | lab | 0.53 | 15.53 |
 | **CognoDB Cloud** | cloud | **471.89** | **759.58** |
 
 Raw TCP handshake — no TLS, no protocol, no query, no database.
 
-### Lab track — read latency (p50 / p95 ms), 0.5 vCPU / 256 MB each
+### Lab track — warm read latency (p50 / p95 ms), 0.5 vCPU / 256 MB each
 
 | Workload | Neo4j | Memgraph | FalkorDB | ArangoDB |
 |---|---|---|---|---|
@@ -381,7 +513,7 @@ Raw TCP handshake — no TLS, no protocol, no query, no database.
 ¹ FalkorDB runs a rewritten explicit-union query (see finding 2); not a like-for-like shape.
 ² ArangoDB uses `uniqueVertices: 'global'`, which prunes earlier than Cypher path expansion.
 
-### Cloud track — CognoDB read latency (p50 / p95 ms)
+### Cloud track — CognoDB warm read latency (p50 / p95 ms)
 
 | Workload | CognoDB Cloud (free c0) |
 |---|---|
@@ -392,34 +524,62 @@ Raw TCP handshake — no TLS, no protocol, no query, no database.
 | Filtered lookup (indexed) | 324.23 / 339.11 |
 | Aggregation (group-by) | 400.31 / 438.14 |
 
-### Mixed read/write workload — 90% reads, sustained throughput
+### Cold start — first five operations after connecting
 
-| Database | 1 client | 10 clients | 40 clients | Errors @40 |
-|---|---|---|---|---|
-| Memgraph | 839.6 | 1,345.6 | **1,437.3** | 0 |
-| ArangoDB | 66.7 | 397.3 | 388.6 | 0 |
-| Neo4j Community 5 | 56.3 | 125.4 | 176.6 | **26** |
-| FalkorDB | 144.9 | 131.7 | **119.3** ↓ | 0 |
-| CognoDB Cloud | 3.1 | 28.2 | 117.9 | 0 |
+Never mixed into the warm numbers above. Reported as **cold p50 / cold max (ms)**.
 
-Full per-level latency breakdown in `results/tables.md`.
+| Workload | Neo4j | Memgraph | FalkorDB | ArangoDB | CognoDB |
+|---|---|---|---|---|---|
+| 1-hop | 13.32 / 389.75 | 4.51 / 12.35 | 7.81 / 30.26 | 23.30 / 30.85 | 325.24 / 514.21 |
+| 2-hop | 4.14 / 73.82 | 1.45 / 2.32 | 6.10 / 8.82 | 18.29 / 27.97 | 574.69 / 1259.83 |
+| 3-hop | 5.70 / 45.80 | 1.60 / 4.63 | 5.23 / 25.76 | 17.03 / 23.18 | 347.05 / 542.68 |
+| Point lookup | 5.17 / 80.05 | 1.66 / 2.22 | 4.31 / 4.50 | 15.21 / 28.89 | 317.34 / 327.35 |
+| Filtered lookup | 8.71 / 84.61 | 3.21 / 5.79 | 4.14 / 4.76 | 25.71 / 30.57 | 320.41 / 332.48 |
+| Aggregation | 67.74 / 283.65 | 8.39 / 8.76 | 7.85 / 42.06 | 29.47 / 42.74 | 397.95 / 448.02 |
+
+The two engines that pay a visible cold-start penalty are the ones with a warm-up
+dependency: Neo4j's first aggregation costs 67.74 ms against a warm 8.85 ms (JIT plus page
+cache), and its worst cold 1-hop hits 389.75 ms. Memgraph, holding everything in RAM, is
+essentially warm on arrival.
+
+### Mixed read/write workload — 90% reads, full concurrency sweep
+
+| Database | Clients | Sustained QPS | Read p50 / p95 (ms) | Write p50 / p95 (ms) | Errors |
+|---|---|---|---|---|---|
+| Neo4j | 1 | 56.3 | 5.22 / 73.69 | 7.74 / 71.53 | 0 |
+| Neo4j | 10 | 125.4 | 93.93 / 105.53 | 98.83 / 196.32 | 0 |
+| Neo4j | 40 | 176.6 | 181.59 / 307.88 | 233.41 / 1308.93 | **26** |
+| Memgraph | 1 | 839.6 | 1.11 / 1.75 | 1.15 / 1.82 | 0 |
+| Memgraph | 10 | 1,345.6 | 6.37 / 14.45 | 6.43 / 15.43 | 0 |
+| Memgraph | 40 | **1,437.3** | 25.68 / 48.92 | 25.89 / 50.14 | 0 |
+| FalkorDB | 1 | 144.9 | 4.59 / 36.33 | 1.39 / 20.80 | 0 |
+| FalkorDB | 10 | 131.7 | 96.09 / 109.52 | 91.63 / 102.41 | 0 |
+| FalkorDB | 40 | 119.3 ↓ | 301.31 / 500.42 | 496.44 / 1203.00 | 0 |
+| ArangoDB | 1 | 66.7 | 15.38 / 29.98 | 15.08 / 30.08 | 0 |
+| ArangoDB | 10 | 397.3 | 22.25 / 40.12 | 21.75 / 37.26 | 0 |
+| ArangoDB | 40 | 388.6 | 99.69 / 152.64 | 97.70 / 152.76 | 0 |
+| CognoDB (cloud) | 1 | 3.1 | 318.90 / 348.65 | 329.33 / 340.47 | 0 |
+| CognoDB (cloud) | 10 | 28.2 | 315.77 / 473.72 | 328.60 / 371.19 | 0 |
+| CognoDB (cloud) | 40 | 117.9 | 316.09 / 344.94 | 335.42 / 415.75 | 0 |
 
 ### Resource footprint
 
-| Database | Enforced cap | Memory in use | % of cap | Server version |
-|---|---|---|---|---|
-| Neo4j Community 5 | 0.5 vCPU / 256 MB | 253.2 MiB | **98.90%** | Neo4j Kernel 5.26.29 |
-| ArangoDB | 0.5 vCPU / 256 MB | 172.5 MiB | 67.38% | 3.11.10 |
-| Memgraph | 0.5 vCPU / 256 MB | 158.5 MiB | 61.92% | 2.22.0 (image tag) ³ |
-| FalkorDB | 0.5 vCPU / 256 MB | 125.5 MiB | 49.02% | Redis 7.2.4 |
-| CognoDB Cloud | 0.5 vCPU / 256 MB (advertised) | not observable | — | not observable |
+| Database | Enforced cap | Memory in use | % of cap | Engine-reported store | Server version |
+|---|---|---|---|---|---|
+| Neo4j Community 5 | 0.5 vCPU / 256 MB | 253.2 MiB | **98.90%** | not observable (needs APOC) | Neo4j Kernel 5.26.29 |
+| ArangoDB | 0.5 vCPU / 256 MB | 172.5 MiB | 67.38% | not observable | 3.11.10 |
+| Memgraph | 0.5 vCPU / 256 MB | 158.5 MiB | 61.92% | not observable | 2.22.0 (image tag) ³ |
+| FalkorDB | 0.5 vCPU / 256 MB | 125.5 MiB | 49.02% | 32.5 MB | Redis 7.2.4 |
+| CognoDB Cloud | 0.5 vCPU / 256 MB (advertised) | **not observable** | — | not observable | not observable |
+
+All five report exactly 34,546 nodes and 421,578 relationships.
 
 CognoDB's managed endpoint exposes neither `dbms.components()` nor store-size procedures,
 so both are reported as not observable rather than estimated.
 
 ³ Memgraph self-reports `Memgraph 5.9.0` via `dbms.components()` — that is the Neo4j
 compatibility version it advertises, not its own. The Docker image tag (`2.22.0`, recorded
-in `results/container_footprint.json`) is authoritative.
+in [results/container_footprint.json](results/container_footprint.json)) is authoritative.
 
 Memory is read from the Docker daemon rather than from the engines, several of which do not
 expose store size without extensions. Captured by `scripts/capture_footprint.py`.
@@ -463,14 +623,14 @@ the benchmark: 26 failures at 40 concurrent clients, with a write p95 of 1,308.9
 **[inference]** The tail is memory pressure, not algorithmic cost. A JVM operating with
 ~3 MiB of headroom will GC frequently, and stop-the-world pauses land precisely in the p95
 and p99. That the median stays low while the tail explodes is characteristic of GC pauses
-rather than of slow queries.
+rather than of slow queries. The cold aggregation figure (67.74 ms vs 8.85 ms warm) points
+the same way.
 
 **[platform behaviour]** Neo4j's default configuration assumes far more memory than 256 MB,
-so heap was set to 96 MB and page cache to 64 MB to fit the container (see
-`docker-compose.yml`). Those values were chosen up front rather than tuned against
-alternatives, so we cannot claim they are optimal — only that they work and are documented.
-The resource-parity rule is doing exactly what it should here: showing what this engine
-costs at this size.
+so heap was set to 96 MB and page cache to 64 MB to fit the container. Those values were
+chosen up front rather than tuned against alternatives, so we cannot claim they are
+optimal — only that they work and are documented. The resource-parity rule is doing exactly
+what it should here: showing what this engine costs at this size.
 
 ### FalkorDB is the only engine that gets *slower* under load
 
@@ -485,7 +645,7 @@ with added queue-management overhead.
 
 **[inference]** For a read-heavy service with modest concurrency FalkorDB's single-client
 latency (4.17–4.67 ms) is competitive; it is concurrency, not per-query cost, that limits
-it here.
+it here. It is also the most memory-frugal engine tested — 125.5 MiB, 49% of cap.
 
 **[caveat]** FalkorDB's 3-hop figure (12.95 / 168.74 ms) is **not comparable like-for-like**
 — it runs the rewritten explicit-union query because its native ranged traversal returns
@@ -566,11 +726,12 @@ their native bulk importers.
 Stated in full, because hidden caveats are worth less than acknowledged ones.
 
 1. **Cross-track latency comparison is invalid.** CognoDB is measured over a ~390 ms WAN
-   link (p95 ~1420 ms, stdev 289 ms); the lab containers answer over loopback. The two
-   tracks answer different questions and must not be placed on one axis.
+   link (p95 ~1420 ms); the lab containers answer over loopback. The two tracks answer
+   different questions and must not be placed on one axis.
 
 2. **CognoDB's engine performance is not isolated by this benchmark.** Only its end-to-end
-   delivered latency from India, its ingest throughput, and its correctness are measured.
+   delivered latency from India, its ingest throughput, its concurrency scaling and its
+   correctness are measured.
 
 3. **`cpus: 0.5` is a hard CFS quota; CognoDB's free tier is described as *burstable* 0.5
    vCPU.** Burstable can exceed its nominal share in short spikes; the containers cannot.
@@ -594,15 +755,19 @@ Stated in full, because hidden caveats are worth less than acknowledged ones.
    the Cypher engines expand paths and deduplicate at the end. This plausibly favours
    ArangoDB on 3-hop.
 
-8. **Neo4j ran at 99.9% of its 256 MB cap** after loading. Its numbers reflect an engine
+8. **Neo4j ran at 98.90% of its 256 MB cap** after loading. Its numbers reflect an engine
    under genuine memory pressure — which is the point of the resource-parity rule, but
    worth naming.
 
 9. **Single client machine, single run of each configuration.** Repeat-run variance is not
-   yet characterised; `--run-id` supports repeated runs for anyone extending this.
+   characterised; `--run-id` supports repeated runs for anyone extending this.
 
-10. **Free-tier specs are as advertised at the date in `results/manifest.json`,** not
-    independently verified except where the platform exposes them.
+10. **Free-tier specs are as advertised** at the run date recorded in the `manifest` block
+    of `results/results-*.json`, not independently verified except where the platform
+    exposes them.
+
+11. **The cloud track has one member.** Without a Neo4j AuraDB peer in us-east, CognoDB's
+    managed-delivery numbers have nothing to be compared against.
 
 ---
 
@@ -611,8 +776,9 @@ Stated in full, because hidden caveats are worth less than acknowledged ones.
 From a fresh clone, with Docker and Python 3.11+:
 
 ```bash
-git clone <this-repo> && cd cognodb-benchmark
+git clone https://github.com/priyanshsingh11/WexaAI && cd WexaAI
 python -m venv .venv && . .venv/Scripts/activate     # Windows
+# . .venv/bin/activate                               # macOS / Linux
 pip install -r requirements.txt
 
 cp .env.example .env        # then fill in your CognoDB credentials
@@ -633,26 +799,33 @@ python scripts/load_data.py --db all
 
 # 5. Run the benchmark
 python scripts/run_benchmark.py --track lab   --concurrency 1,10,40
-python scripts/run_benchmark.py --track cloud --concurrency 1,10
+python scripts/run_benchmark.py --track cloud --concurrency 1,10,40
 
-# 6. Regenerate tables and CSV
+# 6. Regenerate tables, CSV and charts
 python scripts/make_report.py
+python scripts/make_charts.py
+python scripts/capture_footprint.py
 
 # Tests
 python -m pytest tests/ -q
 ```
 
-### Environment variables
+Verify you built the identical dataset by comparing the sha256 values in
+`data/prepared/manifest.json` against the ones recorded in the published results.
 
-All credentials come from `.env` (gitignored — never committed). See `.env.example` for the
-full list. Nothing in this repository contains a connection URI or password.
+### Security
+
+All credentials come from `.env`, which is gitignored and never committed. See
+[.env.example](.env.example) for the full list. Nothing in this repository contains a
+connection URI or password: `benchmarks/registry.py` reads every secret from the
+environment, and `redact()` strips them from logs.
 
 ---
 
 ## Repository layout
 
 ```
-cognodb-benchmark/
+.
 ├── benchmarks/
 │   ├── common.py            # adapter contract, timing loop, correctness checking
 │   ├── metrics.py           # nearest-rank percentiles
@@ -667,16 +840,44 @@ cognodb-benchmark/
 │   ├── prepare_dataset.py   # normalise, sample, compute ground truth, hash
 │   ├── load_data.py         # ingest + throughput measurement
 │   ├── run_benchmark.py     # warm-up, measurement, concurrency, manifest
-│   └── make_report.py       # results.json -> results.csv + tables.md
+│   ├── make_report.py       # results-*.json -> results.csv + tables.md
+│   ├── make_charts.py       # results-*.json -> results/charts/*.png
+│   └── capture_footprint.py # container memory / cap enforcement from the Docker daemon
 ├── results/
-│   ├── results.json         # aggregated stats
-│   ├── results.csv          # flat matrix
+│   ├── results-lab.json     # aggregated lab-track stats + run manifest
+│   ├── results-cloud.json   # aggregated cloud-track stats + run manifest
+│   ├── results.csv          # flat matrix, all percentiles, warm and cold
 │   ├── tables.md            # generated Markdown tables
+│   ├── load_results.json    # ingest throughput per platform
+│   ├── container_footprint.json
+│   ├── charts/              # four generated PNGs
 │   └── raw/<run>/<db>/*.jsonl   # every individual latency sample
+├── data/prepared/manifest.json  # sha256 of every prepared dataset file
 ├── tests/
 ├── docker-compose.yml       # four engines, capped to 0.5 vCPU / 256 MB
-└── requirements.txt         # fully pinned
+├── requirements.txt         # fully pinned
+└── COMPLIANCE.md            # requirement-by-requirement audit, including gaps
 ```
+
+`data/raw/`, `data/prepared/*` (except the manifest) and intermediate runs under
+`results/raw/` are gitignored — regenerable, and large. The two runs this README reports
+(`lab-final`, `cloud-final`) **are** committed.
+
+---
+
+## Extending the harness
 
 Four of the six targets speak Bolt/Cypher, so they share a single adapter parameterised by
 dialect flags rather than four near-identical classes.
+
+Adding a database is two steps:
+
+1. Add a target block to [config/databases.yaml](config/databases.yaml) — track, display
+   name, tier specs and the environment variables its credentials come from.
+2. If it does not speak Bolt, implement the `GraphAdapter` contract from
+   [benchmarks/common.py](benchmarks/common.py): connect, load, the six read workloads, a
+   write, and a footprint probe.
+
+The workloads, timing loop, percentile maths, correctness checking and reporting are shared,
+so a new engine inherits all of them. Ground-truth checking in particular is not optional —
+it is what caught two engines returning wrong answers.
