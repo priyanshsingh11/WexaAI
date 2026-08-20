@@ -1,0 +1,122 @@
+# Benchmark targets.
+#
+# Two tracks, because one honest comparison could not cover both. See README.
+#
+#   track: lab    -- self-hosted in Docker, hard-capped to 0.5 vCPU / 256 MB / 1 GB to
+#                    match CognoDB's advertised free-tier spec exactly. Reached over
+#                    loopback, so latency is engine time with almost no transport cost.
+#                    This is the controlled four-way engine comparison.
+#
+#   track: cloud  -- managed endpoints reached over the public internet from the same
+#                    client machine. CognoDB Cloud is only offered in us-east, and the
+#                    benchmark client is in India, so a measured TCP RTT floor of ~390 ms
+#                    (p95 ~1420 ms) is unavoidable and dominates every query. Numbers in
+#                    this track are only comparable WITHIN the track, never against lab.
+#
+# Credentials are read from the named environment variables. No URI or password appears
+# in this file or anywhere else in the repository.
+
+defaults:
+  batch_size: 1000
+  traversal_limit: 5000
+
+targets:
+  cognodb:
+    adapter: bolt
+    flavour: neo4j
+    track: cloud
+    display_name: CognoDB Cloud (free c0)
+    env:
+      uri: COGNODB_URI
+      user: COGNODB_USER
+      password: COGNODB_PASSWORD
+    tier:
+      advertised: "0.5 vCPU (burstable), 256 MB RAM, 1 GB disk"
+      region: us-east
+      source: "assignment PDF section 3 + CognoDB console"
+      notes: >-
+        Only region offered on the free tier. dbms.components() and store-size procedures
+        are not exposed, so server version and on-disk size are reported as not observable.
+
+  neo4j_aura:
+    adapter: bolt
+    flavour: neo4j
+    track: cloud
+    display_name: Neo4j AuraDB Free
+    optional: true            # skipped automatically when NEO4J_AURA_URI is unset
+    env:
+      uri: NEO4J_AURA_URI
+      user: NEO4J_AURA_USER
+      password: NEO4J_AURA_PASSWORD
+    tier:
+      advertised: "not published by vendor; free tier capped at 200k nodes / 400k relationships"
+      region: us-east
+      source: "Neo4j Aura console"
+      notes: >-
+        The only managed peer CognoDB can be fairly compared against: same client, same
+        WAN link, same region. Provision in us-east to match CognoDB.
+
+  neo4j:
+    adapter: bolt
+    flavour: neo4j
+    track: lab
+    display_name: Neo4j Community 5 (Docker, capped)
+    env:
+      uri: NEO4J_URI
+      user: NEO4J_USER
+      password: NEO4J_PASSWORD
+    tier:
+      advertised: "0.5 vCPU, 256 MB RAM, 1 GB disk (enforced by Docker)"
+      region: local
+      source: docker-compose.yml
+      notes: >-
+        JVM engine in a 256 MB container is the tightest fit in the lab track. If it cannot
+        complete a workload the result is recorded as a failure, not worked around.
+
+  memgraph:
+    adapter: bolt
+    flavour: memgraph
+    track: lab
+    display_name: Memgraph (Docker, capped)
+    env:
+      uri: MEMGRAPH_URI
+      user: MEMGRAPH_USER
+      password: MEMGRAPH_PASSWORD
+    tier:
+      advertised: "0.5 vCPU, 256 MB RAM, 1 GB disk (enforced by Docker)"
+      region: local
+      source: docker-compose.yml
+      notes: >-
+        In-memory engine. Index DDL uses the CREATE INDEX ON :Label(prop) grammar.
+
+  falkordb:
+    adapter: falkordb
+    track: lab
+    display_name: FalkorDB (Docker, capped)
+    env:
+      host: FALKORDB_HOST
+      port: FALKORDB_PORT
+      password: FALKORDB_PASSWORD
+    tier:
+      advertised: "0.5 vCPU, 256 MB RAM, 1 GB disk (enforced by Docker)"
+      region: local
+      source: docker-compose.yml
+      notes: >-
+        Sparse-matrix (GraphBLAS) engine speaking Cypher over the RESP protocol.
+
+  arangodb:
+    adapter: arangodb
+    track: lab
+    display_name: ArangoDB (Docker, capped)
+    env:
+      url: ARANGO_URL
+      user: ARANGO_USER
+      password: ARANGO_PASSWORD
+      database: ARANGO_DB
+    tier:
+      advertised: "0.5 vCPU, 256 MB RAM, 1 GB disk (enforced by Docker)"
+      region: local
+      source: docker-compose.yml
+      notes: >-
+        Multi-model, queried in AQL rather than Cypher. The only target where the query
+        text differs by necessity, which is why every result is checked against ground truth.

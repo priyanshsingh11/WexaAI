@@ -1,0 +1,282 @@
+{
+  "run_id": "20260820T135821Z",
+  "manifest": {
+    "run_utc": "2026-08-20T13:58:21.963904+00:00",
+    "git_sha": "not available (not a git checkout or git missing)",
+    "client_machine": {
+      "platform": "Windows-10-10.0.26200-SP0",
+      "python": "3.11.7",
+      "logical_cpus": 16,
+      "physical_cpus": 12,
+      "total_ram_gb": 16.83
+    },
+    "driver_versions": {
+      "neo4j": "6.2.0",
+      "falkordb": "1.7.1",
+      "python-arango": "8.3.3",
+      "redis": "8.1.0"
+    },
+    "settings": {
+      "iterations": 8,
+      "warmup": 2,
+      "cold_samples": 1,
+      "concurrency_levels": "",
+      "mixed_duration_seconds": 30.0,
+      "read_ratio": 0.9
+    },
+    "dataset": {
+      "nodes": 34546,
+      "edges": 421578,
+      "edges_in_full_source": 421578,
+      "nodes_with_year": 30561,
+      "year_coverage_pct": 88.46,
+      "year_histogram": {
+        "1992": 582,
+        "1993": 1535,
+        "1994": 2304,
+        "1995": 2855,
+        "1996": 3205,
+        "1997": 3532,
+        "1998": 3723,
+        "1999": 4003,
+        "2000": 4036,
+        "2001": 4103,
+        "2002": 683
+      }
+    },
+    "dataset_hashes": {
+      "nodes.csv": {
+        "sha256": "312afbf5c40dbfcc9c895a03bac18c9e5dd23af0ff00faeb212508a5ceac7121",
+        "bytes": 807874
+      },
+      "edges.csv": {
+        "sha256": "48175de71c9cfbe9935491e9cabfa72e0e9a98f109880db3a030827c774df38e",
+        "bytes": 7166835
+      },
+      "start_nodes.json": {
+        "sha256": "b2e2c9493c69741ae835ff014390685386bca481b0fc4d36a8e6bea811e1ec06",
+        "bytes": 10904
+      },
+      "expected.json": {
+        "sha256": "44a6207619c01f157d5e9bf96003b157adacc9317610faf1f45e47022ffd8b41",
+        "bytes": 18599
+      }
+    }
+  },
+  "databases": {
+    "arangodb": {
+      "display_name": "ArangoDB (Docker, capped)",
+      "track": "lab",
+      "tier": {
+        "advertised": "0.5 vCPU, 256 MB RAM, 1 GB disk (enforced by Docker)",
+        "region": "local",
+        "source": "docker-compose.yml",
+        "notes": "Multi-model, queried in AQL rather than Cypher. The only target where the query text differs by necessity, which is why every result is checked against ground truth."
+      },
+      "dialect": "aql-http",
+      "workloads": {
+        "one_hop": {
+          "description": "Count distinct papers cited directly by a start paper (1 hop).",
+          "category": "traversal",
+          "warm": {
+            "n": 8,
+            "min_ms": 4.564,
+            "mean_ms": 14.069,
+            "p50_ms": 14.002,
+            "p90_ms": 24.02,
+            "p95_ms": 24.02,
+            "p99_ms": 24.02,
+            "max_ms": 24.02,
+            "stdev_ms": 6.934
+          },
+          "cold": {
+            "n": 1,
+            "min_ms": 36.258,
+            "mean_ms": 36.258,
+            "p50_ms": 36.258,
+            "p90_ms": 36.258,
+            "p95_ms": 36.258,
+            "p99_ms": 36.258,
+            "max_ms": 36.258,
+            "stdev_ms": 0.0
+          },
+          "correctness": "ok",
+          "mismatches": [],
+          "failures": 0,
+          "error": null
+        },
+        "two_hop": {
+          "description": "Count distinct papers reachable within 2 citation hops.",
+          "category": "traversal",
+          "warm": {
+            "n": 8,
+            "min_ms": 9.556,
+            "mean_ms": 17.979,
+            "p50_ms": 15.684,
+            "p90_ms": 26.367,
+            "p95_ms": 26.367,
+            "p99_ms": 26.367,
+            "max_ms": 26.367,
+            "stdev_ms": 5.57
+          },
+          "cold": {
+            "n": 1,
+            "min_ms": 27.726,
+            "mean_ms": 27.726,
+            "p50_ms": 27.726,
+            "p90_ms": 27.726,
+            "p95_ms": 27.726,
+            "p99_ms": 27.726,
+            "max_ms": 27.726,
+            "stdev_ms": 0.0
+          },
+          "correctness": "ok",
+          "mismatches": [],
+          "failures": 0,
+          "error": null
+        },
+        "three_hop": {
+          "description": "Count distinct papers reachable within 3 citation hops.",
+          "category": "traversal",
+          "warm": {
+            "n": 8,
+            "min_ms": 7.06,
+            "mean_ms": 18.907,
+            "p50_ms": 15.802,
+            "p90_ms": 28.852,
+            "p95_ms": 28.852,
+            "p99_ms": 28.852,
+            "max_ms": 28.852,
+            "stdev_ms": 7.742
+          },
+          "cold": {
+            "n": 1,
+            "min_ms": 25.179,
+            "mean_ms": 25.179,
+            "p50_ms": 25.179,
+            "p90_ms": 25.179,
+            "p95_ms": 25.179,
+            "p99_ms": 25.179,
+            "max_ms": 25.179,
+            "stdev_ms": 0.0
+          },
+          "correctness": "ok",
+          "mismatches": [],
+          "failures": 0,
+          "error": null
+        },
+        "point_lookup": {
+          "description": "Fetch one paper by its indexed id and return its publication year.",
+          "category": "lookup",
+          "warm": {
+            "n": 8,
+            "min_ms": 4.168,
+            "mean_ms": 14.735,
+            "p50_ms": 15.563,
+            "p90_ms": 26.874,
+            "p95_ms": 26.874,
+            "p99_ms": 26.874,
+            "max_ms": 26.874,
+            "stdev_ms": 8.183
+          },
+          "cold": {
+            "n": 1,
+            "min_ms": 4.884,
+            "mean_ms": 4.884,
+            "p50_ms": 4.884,
+            "p90_ms": 4.884,
+            "p95_ms": 4.884,
+            "p99_ms": 4.884,
+            "max_ms": 4.884,
+            "stdev_ms": 0.0
+          },
+          "correctness": "ok",
+          "mismatches": [],
+          "failures": 0,
+          "error": null
+        },
+        "filtered_lookup": {
+          "description": "Count papers published in a given year, using the index on `year`.",
+          "category": "lookup",
+          "warm": {
+            "n": 8,
+            "min_ms": 6.788,
+            "mean_ms": 15.491,
+            "p50_ms": 15.356,
+            "p90_ms": 23.076,
+            "p95_ms": 23.076,
+            "p99_ms": 23.076,
+            "max_ms": 23.076,
+            "stdev_ms": 4.413
+          },
+          "cold": {
+            "n": 1,
+            "min_ms": 16.025,
+            "mean_ms": 16.025,
+            "p50_ms": 16.025,
+            "p90_ms": 16.025,
+            "p95_ms": 16.025,
+            "p99_ms": 16.025,
+            "max_ms": 16.025,
+            "stdev_ms": 0.0
+          },
+          "correctness": "ok",
+          "mismatches": [],
+          "failures": 0,
+          "error": null
+        },
+        "aggregation": {
+          "description": "Group all papers by year and count them; returns the number of year buckets.",
+          "category": "aggregation",
+          "warm": {
+            "n": 8,
+            "min_ms": 28.217,
+            "mean_ms": 30.84,
+            "p50_ms": 31.042,
+            "p90_ms": 32.401,
+            "p95_ms": 32.401,
+            "p99_ms": 32.401,
+            "max_ms": 32.401,
+            "stdev_ms": 1.291
+          },
+          "cold": {
+            "n": 1,
+            "min_ms": 26.128,
+            "mean_ms": 26.128,
+            "p50_ms": 26.128,
+            "p90_ms": 26.128,
+            "p95_ms": 26.128,
+            "p99_ms": 26.128,
+            "max_ms": 26.128,
+            "stdev_ms": 0.0
+          },
+          "correctness": "ok",
+          "mismatches": [],
+          "failures": 0,
+          "error": null
+        }
+      },
+      "mixed": [],
+      "network_baseline_tcp_ms": {
+        "n": 20,
+        "min_ms": 0.261,
+        "mean_ms": 8.965,
+        "p50_ms": 12.915,
+        "p90_ms": 15.802,
+        "p95_ms": 15.976,
+        "p99_ms": 23.82,
+        "max_ms": 23.82,
+        "stdev_ms": 8.179,
+        "failures": 0,
+        "resolved_ip": "127.0.0.1"
+      },
+      "footprint": {
+        "node_count": 34546,
+        "relationship_count": 421578,
+        "papers_size_bytes": "not observable",
+        "cites_size_bytes": "not observable",
+        "server_version": "3.11.10"
+      }
+    }
+  }
+}

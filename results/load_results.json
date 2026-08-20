@@ -1,0 +1,87 @@
+{
+  "cognodb": {
+    "nodes": 34546,
+    "relationships": 421578,
+    "node_load_seconds": 26.141,
+    "relationship_load_seconds": 284.186,
+    "total_seconds": 310.327,
+    "nodes_per_second": 1321.5,
+    "relationships_per_second": 1483.5,
+    "method": "driver batched UNWIND (identical batch size on every platform)",
+    "batch_size": 1000,
+    "indexes": [
+      "CREATE INDEX paper_id IF NOT EXISTS FOR (n:Paper) ON (n.id)",
+      "CREATE INDEX paper_year IF NOT EXISTS FOR (n:Paper) ON (n.year)"
+    ],
+    "loaded_utc": "2026-08-20T13:24:01.655235+00:00",
+    "track": "cloud"
+  },
+  "neo4j": {
+    "nodes": 34546,
+    "relationships": 421578,
+    "node_load_seconds": 15.876,
+    "relationship_load_seconds": 87.488,
+    "total_seconds": 103.364,
+    "nodes_per_second": 2176.0,
+    "relationships_per_second": 4818.7,
+    "method": "driver batched UNWIND (identical batch size on every platform)",
+    "batch_size": 1000,
+    "indexes": [
+      "CREATE INDEX paper_id IF NOT EXISTS FOR (n:Paper) ON (n.id)",
+      "CREATE INDEX paper_year IF NOT EXISTS FOR (n:Paper) ON (n.year)"
+    ],
+    "loaded_utc": "2026-08-20T13:40:56.136516+00:00",
+    "track": "lab"
+  },
+  "memgraph": {
+    "nodes": 34546,
+    "relationships": 421578,
+    "node_load_seconds": 2.069,
+    "relationship_load_seconds": 26.828,
+    "total_seconds": 28.897,
+    "nodes_per_second": 16700.7,
+    "relationships_per_second": 15713.8,
+    "method": "driver batched UNWIND (identical batch size on every platform)",
+    "batch_size": 1000,
+    "indexes": [
+      "CREATE INDEX ON :Paper(id)",
+      "CREATE INDEX ON :Paper(year)"
+    ],
+    "loaded_utc": "2026-08-20T13:41:25.068145+00:00",
+    "track": "lab"
+  },
+  "falkordb": {
+    "nodes": 34546,
+    "relationships": 421578,
+    "node_load_seconds": 2.062,
+    "relationship_load_seconds": 57.013,
+    "total_seconds": 59.074,
+    "nodes_per_second": 16756.5,
+    "relationships_per_second": 7394.4,
+    "method": "driver batched UNWIND (identical batch size on every platform)",
+    "batch_size": 1000,
+    "indexes": [
+      "CREATE INDEX ON :Paper(id)  -- already existed",
+      "CREATE INDEX ON :Paper(year)  -- already existed"
+    ],
+    "loaded_utc": "2026-08-20T13:42:24.354621+00:00",
+    "track": "lab"
+  },
+  "arangodb": {
+    "nodes": 34546,
+    "relationships": 421578,
+    "node_load_seconds": 1.866,
+    "relationship_load_seconds": 26.843,
+    "total_seconds": 28.709,
+    "nodes_per_second": 18509.4,
+    "relationships_per_second": 15705.6,
+    "method": "driver batched AQL INSERT (identical batch size on every platform)",
+    "batch_size": 1000,
+    "indexes": [
+      "papers._key -- primary index (automatic, used by point lookup)",
+      "papers persistent index on ['year']"
+    ],
+    "loaded_utc": "2026-08-20T13:42:54.027079+00:00",
+    "track": "lab"
+  }
+}

@@ -1,0 +1,21 @@
+# Pinned exactly to the versions used for the published results, so a reviewer
+# re-running the benchmark exercises the same driver code paths we measured.
+# Driver version is part of the measurement: a driver change can move latency.
+
+# --- Database drivers -------------------------------------------------------
+neo4j==6.2.0            # Bolt/Cypher: CognoDB, Neo4j Community, Neo4j Aura, Memgraph
+falkordb==1.7.1         # FalkorDB (RESP protocol, Cypher dialect)
+redis==8.1.0            # transitive dependency of falkordb; pinned for reproducibility
+python-arango==8.3.3    # ArangoDB HTTP API (AQL)
+
+# --- Harness ----------------------------------------------------------------
+PyYAML==6.0.2           # config/databases.yaml
+python-dotenv==1.0.1    # credentials from .env, never from source
+psutil==7.0.0           # client-machine specs recorded in the run manifest
+
+# --- Reporting --------------------------------------------------------------
+pandas==2.2.3           # results.csv assembly
+matplotlib==3.10.3      # charts (no seaborn; one plotting dependency is enough)
+
+# --- Tests ------------------------------------------------------------------
+pytest==8.3.4

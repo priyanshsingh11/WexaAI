@@ -1,0 +1,50 @@
+# ---------------------------------------------------------------------------
+# Secrets — nothing in this block may ever reach the public repository.
+# The assignment (PDF section 9) explicitly forbids committing connection URIs
+# or passwords; credentials are read from environment variables only.
+# ---------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*credentials*.txt
+*credentials*.json
+*.pem
+*.key
+
+# ---------------------------------------------------------------------------
+# Dataset artifacts — regenerable from scripts/prepare_dataset.py, and far too
+# large to version. The sha256 manifest is committed instead, so a reviewer can
+# verify they built the identical dataset.
+# ---------------------------------------------------------------------------
+data/raw/
+data/prepared/
+!data/prepared/manifest.json
+
+# ---------------------------------------------------------------------------
+# Benchmark output — raw per-operation samples are large. Aggregated results
+# (results.json / results.csv / charts) ARE committed: they are the deliverable.
+# ---------------------------------------------------------------------------
+results/raw/
+
+# ---------------------------------------------------------------------------
+# Python
+# ---------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+*.egg-info/
+.coverage
+htmlcov/
+
+# ---------------------------------------------------------------------------
+# Editors / OS
+# ---------------------------------------------------------------------------
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini

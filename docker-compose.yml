@@ -1,0 +1,63 @@
+# Lab track: four engines, hard-capped to CognoDB's advertised free-tier spec
+# (0.5 vCPU / 256 MB RAM / 1 GB disk) so no database gets a hardware advantage.
+#
+# HONEST CAVEAT, also stated in the README: `cpus: 0.5` is a hard CFS quota, while
+# CognoDB's free tier is described as *burstable* 0.5 vCPU. Burstable can exceed its
+# nominal share for short periods; the containers here cannot. The two are close but not
+# identical, and this favours CognoDB on short bursty workloads.
+#
+# Storage is not capped per-container here: `--storage-opt size=` requires a specific
+# storage driver that is unavailable on Docker Desktop for Windows. The prepared dataset
+# is ~50 MB on disk, far below the 1 GB limit on every engine, so disk was never the
+# binding constraint. Recorded rather than silently ignored.
+
+services:
+  neo4j:
+    image: neo4j:5.26-community
+    container_name: bench-neo4j
+    environment:
+      NEO4J_AUTH: neo4j/benchmark_local_only
+      # Sized to fit inside the 256 MB container. The JVM needs its heap, page cache and
+      # its own overhead to coexist; these are the values that let it start at all.
+      NEO4J_server_memory_heap_initial__size: 96m
+      NEO4J_server_memory_heap_max__size: 96m
+      NEO4J_server_memory_pagecache_size: 64m
+    ports:
+      - "7687:7687"
+      - "7474:7474"
+    cpus: 0.5
+    mem_limit: 256m
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:7474 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+
+  memgraph:
+    image: memgraph/memgraph:2.22.0
+    container_name: bench-memgraph
+    # Memgraph enforces its own memory ceiling in addition to the container limit; without
+    # it the process is OOM-killed by the kernel instead of returning a clean error.
+    command: ["--memory-limit=200", "--telemetry-enabled=false", "--log-level=WARNING"]
+    ports:
+      - "7688:7687"
+    cpus: 0.5
+    mem_limit: 256m
+
+  falkordb:
+    image: falkordb/falkordb:v4.2.2
+    container_name: bench-falkordb
+    ports:
+      - "6379:6379"
+    cpus: 0.5
+    mem_limit: 256m
+
+  arangodb:
+    image: arangodb:3.11.10
+    container_name: bench-arangodb
+    environment:
+      ARANGO_ROOT_PASSWORD: benchmark_local_only
+    ports:
+      - "8529:8529"
+    cpus: 0.5
+    mem_limit: 256m
